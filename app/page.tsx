@@ -13,12 +13,21 @@ export default function Home() {
         <p className="mt-4 text-gray-500 max-w-md mx-auto">
           Spring 2026 recruitment is now open. Submit your application below.
         </p>
-        <Link
-          href="/apply"
-          className="mt-8 inline-block rounded-lg bg-blue-600 px-8 py-3 text-lg font-semibold text-white transition-colors hover:bg-blue-700"
-        >
-          Apply Now
-        </Link>
+
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            href="/apply"
+            className="rounded-lg bg-blue-600 px-8 py-3 text-lg font-semibold text-white transition-colors hover:bg-blue-700"
+          >
+            Apply Now
+          </Link>
+          <Link
+            href="/login"
+            className="rounded-lg border border-gray-300 bg-white px-8 py-3 text-lg font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            Staff Login
+          </Link>
+        </div>
       </main>
     </div>
   );

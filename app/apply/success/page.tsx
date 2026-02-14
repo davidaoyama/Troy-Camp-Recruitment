@@ -1,13 +1,6 @@
 import Link from "next/link";
 
-interface SuccessPageProps {
-  searchParams: Promise<{ id?: string }>;
-}
-
-export default async function ApplySuccessPage({ searchParams }: SuccessPageProps) {
-  const { id } = await searchParams;
-  const anonymousId = id ?? "Unknown";
-
+export default function ApplySuccessPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md text-center">
@@ -32,24 +25,20 @@ export default async function ApplySuccessPage({ searchParams }: SuccessPageProp
           Application Submitted!
         </h1>
 
-        <p className="text-gray-600 mb-6">
-          Your application has been received successfully.
+        <p className="text-gray-600 mb-2">
+          Thank you for applying to be a Transfer Counselor.
         </p>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-6 mb-6">
-          <p className="text-sm text-gray-500 mb-1">Your Anonymous ID</p>
-          <p className="text-3xl font-bold text-blue-600">{anonymousId}</p>
-          <p className="mt-3 text-sm text-gray-500">
-            Please save this ID for your records. You may need it to reference
-            your application.
-          </p>
-        </div>
+        <p className="text-gray-500 text-sm mb-8">
+          Please watch your email for next steps regarding the interview
+          process. If you have any questions, reach out to the Troy Camp team.
+        </p>
 
         <Link
           href="/"
-          className="text-sm text-blue-600 hover:text-blue-800 underline"
+          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
         >
-          Return to home page
+          &larr; Return to home page
         </Link>
       </div>
     </div>

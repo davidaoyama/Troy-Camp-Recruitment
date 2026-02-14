@@ -29,6 +29,12 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm px-6">
+        <a
+          href="/"
+          className="inline-block text-sm text-blue-600 hover:text-blue-800 font-medium mb-6"
+        >
+          &larr; Back to Home
+        </a>
         <h1 className="text-3xl font-bold text-center text-gray-900">
           Troy Camp
         </h1>

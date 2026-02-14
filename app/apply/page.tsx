@@ -89,7 +89,7 @@ export default function ApplyPage() {
       const result = await submitApplication(fd);
 
       if (result.success) {
-        router.push(`/apply/success?id=${encodeURIComponent(result.anonymousId)}`);
+        router.push("/apply/success");
       } else {
         setError(result.error);
       }
@@ -103,6 +103,12 @@ export default function ApplyPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="mx-auto max-w-2xl">
+        <a
+          href="/"
+          className="inline-block text-sm text-blue-600 hover:text-blue-800 font-medium mb-6"
+        >
+          &larr; Back to Home
+        </a>
         <h1 className="text-3xl font-bold text-center mb-2">
           Transfer Counselor Application
         </h1>

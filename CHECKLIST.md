@@ -37,10 +37,17 @@
 - [x] Wire form submission to server action, handle `loading` / `error` / `success` states
 
 ### 2.6 Success Confirmation Page
-- [x] Create `app/apply/success/page.tsx` — displays anonymous ID from URL search params, "save this for your records" message
+- [x] Create `app/apply/success/page.tsx` — thank you message (no anonymous ID shown to applicants)
 
 ### 2.7 Integration Test
-- [ ] Test full flow end-to-end: fill form → submit → verify row in Supabase → confirm redirect to success page
+- [x] Test full flow end-to-end: fill form → submit → verify row in Supabase → confirm redirect to success page
+
+### 2.8 Misc
+- [x] Home page with Apply Now + Staff Login buttons
+- [x] Styled back links on apply and login pages
+- [x] Updated root layout metadata
+- [x] `next.config.ts` — `serverActions.bodySizeLimit: "6mb"` for photo uploads
+- [x] Seed script (`scripts/seed-users.ts`) for creating test accounts
 
 ## Phase 3: Admin Dashboard
 
@@ -58,15 +65,26 @@
 - [x] Build applicant list view (`app/admin/applicants/page.tsx`, `app/admin/applicants/ApplicantTable.tsx`) — sortable table with status filter tabs
 - [x] Implement written grading auto-assignment (`app/admin/assignments/written/actions.ts`, `app/admin/assignments/written/page.tsx`) — balanced round-robin algorithm (3 graders per app), batch insert, clear ungraded
 - [x] Build interview grading manual assignment UI (`app/admin/assignments/interview/actions.ts`, `app/admin/assignments/interview/page.tsx`) — per-row grader dropdowns for Section 1 & 2
-- [ ] Create rubric management interface (actions written, UI in progress)
+- [x] Create rubric management interface
+  - [x] Server actions (`getRubrics`, `saveRubric`, `deleteRubric`) in `app/admin/rubrics/actions.ts`
+  - [x] Build `app/admin/rubrics/page.tsx` — grouped tables (Written / Interview S1 / Interview S2), create/edit modal, delete with confirmation
+  - [x] Verify edge cases (empty state, missing section for interview, duplicate Q#)
 
 ## Phase 4: Grader Portal - Written
 
-- [ ] Build grader dashboard (assigned apps list)
-- [ ] Create written grading interface
-- [ ] Implement rubric display (modal/accordion)
-- [ ] Add save draft functionality
-- [ ] Implement submit all grades logic
+### 4.0 Layout & Navigation
+- [x] Create grader layout (`app/grader/layout.tsx`) with `requireAuth()` + sidebar
+- [x] Create `GraderSidebar` component (nav links, logout)
+- [x] Create grader root page (`app/grader/page.tsx`) — redirect to `/grader/written`
+
+### 4.1 Server Actions
+- [x] Create `app/grader/written/actions.ts` — `getGraderAssignments()`, `getGradingData()`, `saveGrade()`, `submitAllGrades()`
+
+### 4.2 Written Dashboard
+- [x] Build `/grader/written/page.tsx` — assigned applications card grid with progress indicators
+
+### 4.3 Grading Interface
+- [x] Build `/grader/written/[applicationId]/page.tsx` — question display, score radio buttons, rubric modal, save draft, submit all
 
 ## Phase 5: Grader Portal - Interview
 
