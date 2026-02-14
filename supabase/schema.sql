@@ -79,17 +79,25 @@ CREATE TABLE interview_assignments (
 );
 
 -- ============================================
--- INTERVIEW GRADES TABLE (2 graders x 2 sections = 4 per application)
+-- INTERVIEW GRADES TABLE (1 score per assignment/section)
 -- ============================================
 CREATE TABLE interview_grades (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  application_id UUID NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
-  grader_id UUID NOT NULL REFERENCES users(id),
-  section INTEGER NOT NULL CHECK (section IN (1, 2)),
-  score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 5),
-  notes TEXT NOT NULL,
+  assignment_id UUID NOT NULL UNIQUE REFERENCES interview_assignments(id) ON DELETE CASCADE,
+  score INTEGER CHECK (score IS NULL OR (score BETWEEN 1 AND 5)),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- INTERVIEW NOTES TABLE (per-question notes for each assignment)
+-- ============================================
+CREATE TABLE interview_notes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  assignment_id UUID NOT NULL REFERENCES interview_assignments(id) ON DELETE CASCADE,
+  question_number INTEGER NOT NULL,
+  notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE (application_id, grader_id, section)
+  UNIQUE (assignment_id, question_number)
 );
 
 -- ============================================
@@ -126,8 +134,8 @@ CREATE INDEX idx_applications_anonymous_id ON applications(anonymous_id);
 CREATE INDEX idx_written_responses_app ON written_responses(application_id);
 CREATE INDEX idx_written_grades_app ON written_grades(application_id);
 CREATE INDEX idx_written_grades_grader ON written_grades(grader_id);
-CREATE INDEX idx_interview_grades_app ON interview_grades(application_id);
-CREATE INDEX idx_interview_grades_grader ON interview_grades(grader_id);
+CREATE INDEX idx_interview_grades_assignment ON interview_grades(assignment_id);
+CREATE INDEX idx_interview_notes_assignment ON interview_notes(assignment_id);
 CREATE INDEX idx_interview_assignments_app ON interview_assignments(application_id);
 CREATE INDEX idx_interview_assignments_grader ON interview_assignments(grader_id);
 CREATE INDEX idx_deliberation_decisions_app ON deliberation_decisions(application_id);
@@ -143,6 +151,7 @@ ALTER TABLE written_responses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE written_grades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE interview_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE interview_grades ENABLE ROW LEVEL SECURITY;
+ALTER TABLE interview_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rubrics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE deliberation_decisions ENABLE ROW LEVEL SECURITY;
 
@@ -186,6 +195,12 @@ CREATE POLICY "Authenticated users can manage interview assignments"
 -- Interview grades: authenticated users can manage
 CREATE POLICY "Authenticated users can manage interview grades"
   ON interview_grades FOR ALL
+  TO authenticated
+  USING (true);
+
+-- Interview notes: authenticated users can manage
+CREATE POLICY "Authenticated users can manage interview notes"
+  ON interview_notes FOR ALL
   TO authenticated
   USING (true);
 

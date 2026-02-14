@@ -6,6 +6,7 @@ import { logoutUser } from "@/app/login/actions";
 
 const NAV_ITEMS = [
   { href: "/grader/written", label: "Written Grading" },
+  { href: "/grader/interview", label: "Interview Grading" },
 ];
 
 export const GraderSidebar = ({ userName }: { userName: string }) => {

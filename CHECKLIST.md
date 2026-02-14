@@ -88,10 +88,12 @@
 
 ## Phase 5: Grader Portal - Interview
 
-- [ ] Build interview assignments dashboard
-- [ ] Create interview grading interface
-- [ ] Add notes text area with validation
-- [ ] Implement score submission
+- [x] Update DB schema — `interview_grades` (per-assignment score) + `interview_notes` (per-question notes)
+- [x] Add `InterviewGradeRow` and `InterviewNoteRow` types to `lib/types.ts`
+- [x] Create server actions (`app/grader/interview/actions.ts`) — `getInterviewAssignments`, `getInterviewGradingData`, `saveInterviewNote`, `saveInterviewScore`, `submitAllInterviewGrades`
+- [x] Build interview assignments dashboard (`app/grader/interview/page.tsx`)
+- [x] Create interview grading interface (`app/grader/interview/[assignmentId]/page.tsx`) — section score, per-question notes with 50-char validation, rubric modal
+- [x] Update `GraderSidebar` with Interview Grading nav link
 
 ## Phase 6: Score Calculation
 

@@ -112,6 +112,25 @@ export interface InterviewAssignmentRow {
 }
 
 // ============================================
+// Interview Grade & Note Types
+// ============================================
+
+export interface InterviewGradeRow {
+  id: string;
+  assignment_id: string;
+  score: number | null;
+  created_at: string;
+}
+
+export interface InterviewNoteRow {
+  id: string;
+  assignment_id: string;
+  question_number: number;
+  notes: string | null;
+  created_at: string;
+}
+
+// ============================================
 // Rubric Types
 // ============================================
 
