@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import type { DashboardStats } from "@/lib/types";
+import type { DashboardStats, StatusOverview } from "@/lib/types";
+import { ScoreManagementSection } from "./components/ScoreManagementSection";
 
 const SEMESTER = process.env.NEXT_PUBLIC_CURRENT_SEMESTER!;
 
@@ -61,8 +62,33 @@ async function getDashboardStats(): Promise<DashboardStats> {
   };
 }
 
+async function getStatusOverview(): Promise<StatusOverview> {
+  const statuses = ["auto_accept", "discuss", "auto_reject", "accepted", "rejected"] as const;
+  const counts: Record<string, number> = {};
+
+  for (const status of statuses) {
+    const { count } = await supabaseAdmin
+      .from("applications")
+      .select("*", { count: "exact", head: true })
+      .eq("semester", SEMESTER)
+      .eq("status", status);
+    counts[status] = count ?? 0;
+  }
+
+  return {
+    autoAcceptCount: counts["auto_accept"],
+    discussCount: counts["discuss"],
+    autoRejectCount: counts["auto_reject"],
+    acceptedCount: counts["accepted"],
+    rejectedCount: counts["rejected"],
+  };
+}
+
 export default async function AdminDashboardPage() {
-  const stats = await getDashboardStats();
+  const [stats, statusOverview] = await Promise.all([
+    getDashboardStats(),
+    getStatusOverview(),
+  ]);
 
   const writtenPct =
     stats.writtenGradingProgress.total > 0
@@ -115,6 +141,43 @@ export default async function AdminDashboardPage() {
           percentage={interviewPct}
         />
       </div>
+
+      {/* Status Breakdown */}
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Status Breakdown
+        </h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+          <StatusCard
+            label="Auto-Accept"
+            value={statusOverview.autoAcceptCount}
+            color="bg-green-50 border-green-200 text-green-700"
+          />
+          <StatusCard
+            label="Discuss"
+            value={statusOverview.discussCount}
+            color="bg-yellow-50 border-yellow-200 text-yellow-700"
+          />
+          <StatusCard
+            label="Auto-Reject"
+            value={statusOverview.autoRejectCount}
+            color="bg-red-50 border-red-200 text-red-700"
+          />
+          <StatusCard
+            label="Accepted"
+            value={statusOverview.acceptedCount}
+            color="bg-emerald-50 border-emerald-200 text-emerald-700"
+          />
+          <StatusCard
+            label="Rejected"
+            value={statusOverview.rejectedCount}
+            color="bg-gray-50 border-gray-300 text-gray-600"
+          />
+        </div>
+      </div>
+
+      {/* Score Management */}
+      <ScoreManagementSection />
     </div>
   );
 }
@@ -123,6 +186,21 @@ const StatCard = ({ label, value }: { label: string; value: number }) => (
   <div className="rounded-lg bg-white p-5 border border-gray-200">
     <p className="text-sm text-gray-500">{label}</p>
     <p className="mt-1 text-3xl font-bold text-gray-900">{value}</p>
+  </div>
+);
+
+const StatusCard = ({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color: string;
+}) => (
+  <div className={`rounded-lg p-4 border ${color}`}>
+    <p className="text-sm font-medium">{label}</p>
+    <p className="mt-1 text-2xl font-bold">{value}</p>
   </div>
 );
 

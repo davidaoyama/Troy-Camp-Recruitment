@@ -105,19 +105,38 @@
 
 ## Phase 7: Deliberations Mode
 
-- [ ] Build deliberations layout (sidebar + main)
-- [ ] Implement sidebar filtering (all/accept/discuss/reject)
-- [ ] Create applicant card with photo + demographics
-- [ ] Build written responses accordion
-- [ ] Build interview grades accordion
-- [ ] Implement navigation (prev/next + sidebar click)
-- [ ] Add decision recording (YES/NO buttons)
+### 7.0 Types & Sidebar Nav
+- [x] Add deliberation types to `lib/types.ts` (`DeliberationApplicant`, `WrittenResponseDetail`, `InterviewSectionDetail`, `DeliberationDetail`)
+- [x] Add "Deliberations" link to `AdminSidebar.tsx`
+
+### 7.1 Server Actions
+- [x] Create `app/admin/deliberations/actions.ts` — `getDeliberationApplicants()`, `getApplicantDetail()`, `recordDecision()`
+
+### 7.2 Dumb Components
+- [x] Create `DeliberationsSidebar.tsx` — filter tabs (All / Auto-Accept / Discuss / Auto-Reject) + scrollable applicant list
+- [x] Create `ApplicantCard.tsx` — photo + demographics (2-col) + score summary box
+- [x] Create `WrittenResponsesAccordion.tsx` — expandable per-question written responses with grader scores
+- [x] Create `InterviewGradesAccordion.tsx` — expandable per-section interview grades with grader scores + notes
+- [x] Create `DecisionButtons.tsx` — YES/NO buttons with loading + already-decided states
+
+### 7.3 Smart Container (Page)
+- [x] Create `app/admin/deliberations/page.tsx` — wires all components, manages state, prev/next navigation, auto-advance after decision
 
 ## Phase 8: Data Export & Polish
 
-- [ ] Implement CSV export
-- [ ] Add PDF export (optional)
-- [ ] Create database backup functionality
-- [ ] Build admin status overview dashboard
-- [ ] Add loading states and error handling
+### 8.1 Types & Nav
+- [x] Add `ExportApplicantRow`, `SemesterBackup`, `StatusOverview` types to `lib/types.ts`
+- [x] Add "Export Data" link to `AdminSidebar.tsx`
+
+### 8.2 Server Actions
+- [x] Create `app/admin/export/actions.ts` — `exportAllCSV()`, `exportAcceptedCSV()`, `exportBackupJSON()`
+
+### 8.3 Export Page UI
+- [x] Create `app/admin/export/page.tsx` — export buttons with loading states, client-side file download
+
+### 8.4 Dashboard Enhancement
+- [x] Enhance `app/admin/page.tsx` — add status breakdown cards (auto_accept, discuss, auto_reject, accepted, rejected counts)
+
+### 8.5 Polish & Deploy
+- [x] Loading/error state audit across app — added `error.tsx` + `loading.tsx` boundaries for admin & grader
 - [ ] Deploy to Vercel
