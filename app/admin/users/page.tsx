@@ -210,6 +210,7 @@ const CreateUserModal = ({
               id="create-username"
               type="text"
               required
+              placeholder="iceprincess"
               minLength={3}
               value={form.username}
               onChange={(e) => updateField("username", e.target.value)}
@@ -249,7 +250,7 @@ const CreateUserModal = ({
               value={form.fullName}
               onChange={(e) => updateField("fullName", e.target.value)}
               className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="e.g. David Oyama"
+              placeholder="e.g. David Aoyama"
             />
           </div>
 
@@ -267,7 +268,7 @@ const CreateUserModal = ({
               value={form.tcName}
               onChange={(e) => updateField("tcName", e.target.value)}
               className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="e.g. TC David"
+              placeholder="e.g. Ice Princess"
             />
           </div>
 
