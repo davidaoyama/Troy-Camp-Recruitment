@@ -120,6 +120,7 @@ export interface InterviewAssignmentRow {
 export interface InterviewGradeRow {
   id: string;
   assignment_id: string;
+  sub_section: 1 | 2;
   score: number | null;
   created_at: string;
 }
@@ -143,6 +144,7 @@ export interface RubricRow {
   question_text: string;
   rubric_content: string | null;
   section: number | null;
+  sub_section: number | null;
   created_at: string;
 }
 
@@ -213,7 +215,7 @@ export interface InterviewSectionDetail {
   avgScore: number | null;
   graderDetails: {
     graderName: string;
-    score: number;
+    subScores: { subSection: 1 | 2; score: number }[];
     notes: { questionNumber: number; questionText: string; notes: string }[];
   }[];
 }
@@ -264,8 +266,10 @@ export interface ExportApplicantRow {
   writtenQ4Avg: number | null;
   writtenQ5Avg: number | null;
   writtenAvg: number | null;
-  interviewS1Avg: number | null;
-  interviewS2Avg: number | null;
+  interviewR1Sub1Avg: number | null;
+  interviewR1Sub2Avg: number | null;
+  interviewR2Sub1Avg: number | null;
+  interviewR2Sub2Avg: number | null;
   interviewAvg: number | null;
   totalScore: number | null;
   status: ApplicationRow["status"];
@@ -323,7 +327,7 @@ export interface UserInterviewAssignment {
   firstName: string;
   lastName: string;
   section: number;
-  score: number | null;
+  scores: { subSection: 1 | 2; score: number | null }[];
   notes: {
     questionNumber: number;
     questionText: string;

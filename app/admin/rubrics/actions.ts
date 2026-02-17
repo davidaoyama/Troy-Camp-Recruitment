@@ -12,6 +12,7 @@ export async function getRubrics(): Promise<RubricRow[]> {
     .select("*")
     .order("question_type", { ascending: true })
     .order("section", { ascending: true, nullsFirst: true })
+    .order("sub_section", { ascending: true, nullsFirst: true })
     .order("question_number", { ascending: true });
 
   if (error) throw new Error(error.message);
@@ -25,6 +26,7 @@ export async function saveRubric(input: {
   questionText: string;
   rubricContent: string;
   section: number | null;
+  subSection: number | null;
 }): Promise<ActionResult<{ rubricId: string }>> {
   try {
     await requireAdmin();
@@ -36,7 +38,10 @@ export async function saveRubric(input: {
       return { success: false, error: "Question number must be at least 1" };
     }
     if (input.questionType === "interview" && input.section === null) {
-      return { success: false, error: "Interview rubrics require a section (1 or 2)" };
+      return { success: false, error: "Interview rubrics require a round (1 or 2)" };
+    }
+    if (input.questionType === "interview" && input.subSection === null) {
+      return { success: false, error: "Interview rubrics require a sub-section (1 or 2)" };
     }
 
     const row = {
@@ -45,6 +50,7 @@ export async function saveRubric(input: {
       question_text: input.questionText.trim(),
       rubric_content: input.rubricContent.trim() || null,
       section: input.questionType === "written" ? null : input.section,
+      sub_section: input.questionType === "written" ? null : input.subSection,
     };
 
     if (input.id) {

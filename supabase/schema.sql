@@ -80,13 +80,15 @@ CREATE TABLE interview_assignments (
 );
 
 -- ============================================
--- INTERVIEW GRADES TABLE (1 score per assignment/section)
+-- INTERVIEW GRADES TABLE (2 sub-section scores per assignment/round)
 -- ============================================
 CREATE TABLE interview_grades (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  assignment_id UUID NOT NULL UNIQUE REFERENCES interview_assignments(id) ON DELETE CASCADE,
+  assignment_id UUID NOT NULL REFERENCES interview_assignments(id) ON DELETE CASCADE,
+  sub_section INTEGER NOT NULL DEFAULT 1 CHECK (sub_section IN (1, 2)),
   score INTEGER CHECK (score IS NULL OR (score BETWEEN 1 AND 5)),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE (assignment_id, sub_section)
 );
 
 -- ============================================
@@ -111,6 +113,7 @@ CREATE TABLE rubrics (
   question_text TEXT NOT NULL,
   rubric_content TEXT,        -- Scoring guide text or image URL
   section INTEGER,            -- NULL for written, 1 or 2 for interview
+  sub_section INTEGER,        -- NULL for written, 1 or 2 for interview (splits questions within a round)
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

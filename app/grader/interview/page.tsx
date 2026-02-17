@@ -29,7 +29,7 @@ export default function InterviewDashboardPage() {
   }, [loadAssignments]);
 
   const completedCount = assignments.filter(
-    (a) => a.hasScore && a.notesCount === a.totalQuestions
+    (a) => a.scoreCount === 2 && a.notesCount === a.totalQuestions
   ).length;
 
   return (
@@ -74,10 +74,10 @@ export default function InterviewDashboardPage() {
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {assignments.map((assignment) => {
             const isComplete =
-              assignment.hasScore &&
+              assignment.scoreCount === 2 &&
               assignment.notesCount === assignment.totalQuestions;
             const inProgress =
-              assignment.hasScore || assignment.notesCount > 0;
+              assignment.scoreCount > 0 || assignment.notesCount > 0;
             const progressPercent =
               assignment.totalQuestions > 0
                 ? (assignment.notesCount / assignment.totalQuestions) * 100
@@ -95,7 +95,7 @@ export default function InterviewDashboardPage() {
                       {assignment.anonymousId}
                     </h3>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      Section {assignment.section}
+                      Round {assignment.section}
                     </p>
                   </div>
                   <span
@@ -121,7 +121,7 @@ export default function InterviewDashboardPage() {
                       {assignment.notesCount} / {assignment.totalQuestions} notes
                     </span>
                     <span>
-                      {assignment.hasScore ? "Scored" : "No score"}
+                      {assignment.scoreCount}/2 scored
                     </span>
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-2">

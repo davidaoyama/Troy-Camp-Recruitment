@@ -9,6 +9,7 @@ import {
   submitAllInterviewGrades,
   type InterviewGradingPageData,
   type InterviewGradingQuestion,
+  type InterviewGradingScoreEntry,
 } from "../actions";
 
 export default function InterviewGradingPage() {
@@ -17,11 +18,11 @@ export default function InterviewGradingPage() {
   const assignmentId = params.assignmentId as string;
 
   const [data, setData] = useState<InterviewGradingPageData | null>(null);
-  const [score, setScore] = useState<number | null>(null);
+  const [scores, setScores] = useState<Record<1 | 2, number | null>>({ 1: null, 2: null });
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [savingNote, setSavingNote] = useState<number | null>(null);
-  const [savingScore, setSavingScore] = useState(false);
+  const [savingScore, setSavingScore] = useState<1 | 2 | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -33,7 +34,11 @@ export default function InterviewGradingPage() {
     const result = await getInterviewGradingData(assignmentId);
     if (result.success) {
       setData(result.data);
-      setScore(result.data.score);
+      const initialScores: Record<1 | 2, number | null> = { 1: null, 2: null };
+      for (const s of result.data.scores) {
+        initialScores[s.subSection] = s.score;
+      }
+      setScores(initialScores);
       const initialNotes: Record<number, string> = {};
       for (const q of result.data.questions) {
         initialNotes[q.questionNumber] = q.notes ?? "";
@@ -49,23 +54,23 @@ export default function InterviewGradingPage() {
     loadData();
   }, [loadData]);
 
-  const handleScoreChange = async (newScore: number) => {
-    const prevScore = score;
+  const handleScoreChange = async (subSection: 1 | 2, newScore: number) => {
+    const prevScore = scores[subSection];
 
     // Optimistic update
-    setScore(newScore);
-    setSavingScore(true);
+    setScores((prev) => ({ ...prev, [subSection]: newScore }));
+    setSavingScore(subSection);
     setError(null);
 
-    const result = await saveInterviewScore(assignmentId, newScore);
+    const result = await saveInterviewScore(assignmentId, subSection, newScore);
 
     if (!result.success) {
       // Rollback
-      setScore(prevScore);
+      setScores((prev) => ({ ...prev, [subSection]: prevScore }));
       setError(result.error);
     }
 
-    setSavingScore(false);
+    setSavingScore(null);
   };
 
   const handleNotesChange = (questionNumber: number, value: string) => {
@@ -93,9 +98,10 @@ export default function InterviewGradingPage() {
   const handleSubmitAll = async () => {
     if (!data) return;
 
-    // Client-side validation
-    if (score === null) {
-      setError("Please provide a section score before submitting.");
+    // Client-side validation — both sub-section scores required
+    if (scores[1] === null || scores[2] === null) {
+      const missing = [1, 2].filter((s) => scores[s as 1 | 2] === null);
+      setError(`Please provide scores for sub-section(s): ${missing.join(", ")}`);
       return;
     }
 
@@ -157,7 +163,71 @@ export default function InterviewGradingPage() {
   const allNotesValid = data.questions.every(
     (q) => notes[q.questionNumber]?.trim().length >= 50
   );
-  const allComplete = score !== null && allNotesValid;
+  const bothScoresSet = scores[1] !== null && scores[2] !== null;
+  const allComplete = bothScoresSet && allNotesValid;
+
+  // Group questions by sub-section
+  const sub1Questions = data.questions.filter((q) => q.subSection === 1);
+  const sub2Questions = data.questions.filter((q) => q.subSection === 2);
+
+  const renderScoreWidget = (subSection: 1 | 2, label: string) => (
+    <div className="rounded-lg border border-gray-200 bg-white p-5">
+      <div className="flex items-center gap-4">
+        <span className="text-sm font-semibold text-gray-900">
+          {label}:
+        </span>
+        <div
+          className="flex gap-2"
+          role="radiogroup"
+          aria-label={label}
+        >
+          {[1, 2, 3, 4, 5].map((value) => (
+            <button
+              key={value}
+              onClick={() => handleScoreChange(subSection, value)}
+              disabled={savingScore !== null}
+              aria-pressed={scores[subSection] === value}
+              className={`w-11 h-11 rounded-lg text-base font-bold transition-colors ${
+                scores[subSection] === value
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
+        {savingScore === subSection && (
+          <span className="text-xs text-gray-400">Saving...</span>
+        )}
+        {savingScore !== subSection && scores[subSection] !== null && (
+          <span className="text-xs text-green-600">Saved</span>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderQuestionList = (questions: InterviewGradingQuestion[]) =>
+    questions.map((question) => (
+      <QuestionCard
+        key={question.questionNumber}
+        question={question}
+        notes={notes[question.questionNumber] ?? ""}
+        isSaving={savingNote === question.questionNumber}
+        rubricOpen={rubricOpen === question.questionNumber}
+        onNotesChange={(value) =>
+          handleNotesChange(question.questionNumber, value)
+        }
+        onNotesBlur={() => handleNotesBlur(question.questionNumber)}
+        onToggleRubric={() =>
+          setRubricOpen((prev) =>
+            prev === question.questionNumber
+              ? null
+              : question.questionNumber
+          )
+        }
+      />
+    ));
 
   return (
     <div className="max-w-3xl">
@@ -171,7 +241,7 @@ export default function InterviewGradingPage() {
             &larr; Back to Dashboard
           </button>
           <h1 className="mt-2 text-2xl font-bold text-gray-900">
-            {data.assignment.anonymousId} — Section{" "}
+            {data.assignment.anonymousId} — Round{" "}
             {data.assignment.section}
           </h1>
         </div>
@@ -181,7 +251,7 @@ export default function InterviewGradingPage() {
               (q) => notes[q.questionNumber]?.trim().length >= 50
             ).length
           }{" "}
-          / {data.questions.length} notes complete
+          / {data.questions.length} notes &middot; {[1, 2].filter((s) => scores[s as 1 | 2] !== null).length}/2 scored
         </div>
       </div>
 
@@ -207,65 +277,39 @@ export default function InterviewGradingPage() {
         </div>
       )}
 
-      {/* Section Score */}
-      <div className="mt-6 rounded-lg border border-gray-200 bg-white p-5">
-        <div className="flex items-center gap-4">
-          <span className="text-sm font-semibold text-gray-900">
-            Section Score:
-          </span>
-          <div
-            className="flex gap-2"
-            role="radiogroup"
-            aria-label={`Score for Section ${data.assignment.section}`}
-          >
-            {[1, 2, 3, 4, 5].map((value) => (
-              <button
-                key={value}
-                onClick={() => handleScoreChange(value)}
-                disabled={savingScore}
-                aria-pressed={score === value}
-                className={`w-11 h-11 rounded-lg text-base font-bold transition-colors ${
-                  score === value
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                {value}
-              </button>
-            ))}
+      {/* Sub-section 1 */}
+      {sub1Questions.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-3">Sub-section 1</h2>
+          {renderScoreWidget(1, "Sub-section 1 Score")}
+          <div className="mt-4 space-y-6">
+            {renderQuestionList(sub1Questions)}
           </div>
-          {savingScore && (
-            <span className="text-xs text-gray-400">Saving...</span>
-          )}
-          {!savingScore && score !== null && (
-            <span className="text-xs text-green-600">Saved</span>
-          )}
         </div>
-      </div>
+      )}
 
-      {/* Questions */}
-      <div className="mt-6 space-y-6">
-        {data.questions.map((question) => (
-          <QuestionCard
-            key={question.questionNumber}
-            question={question}
-            notes={notes[question.questionNumber] ?? ""}
-            isSaving={savingNote === question.questionNumber}
-            rubricOpen={rubricOpen === question.questionNumber}
-            onNotesChange={(value) =>
-              handleNotesChange(question.questionNumber, value)
-            }
-            onNotesBlur={() => handleNotesBlur(question.questionNumber)}
-            onToggleRubric={() =>
-              setRubricOpen((prev) =>
-                prev === question.questionNumber
-                  ? null
-                  : question.questionNumber
-              )
-            }
-          />
-        ))}
-      </div>
+      {/* Sub-section 2 */}
+      {sub2Questions.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold text-gray-800 mb-3">Sub-section 2</h2>
+          {renderScoreWidget(2, "Sub-section 2 Score")}
+          <div className="mt-4 space-y-6">
+            {renderQuestionList(sub2Questions)}
+          </div>
+        </div>
+      )}
+
+      {/* Warning if a sub-section has no rubrics */}
+      {sub1Questions.length === 0 && (
+        <div className="mt-6 rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-700">
+          No rubric questions found for Sub-section 1. Contact an admin to add them.
+        </div>
+      )}
+      {sub2Questions.length === 0 && (
+        <div className="mt-6 rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-700">
+          No rubric questions found for Sub-section 2. Contact an admin to add them.
+        </div>
+      )}
 
       {/* Submit */}
       <div className="mt-8 flex items-center justify-end gap-3 pb-8">

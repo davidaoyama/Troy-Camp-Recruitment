@@ -14,7 +14,7 @@ export interface InterviewAssignmentCard {
   applicationId: string;
   anonymousId: string;
   section: 1 | 2;
-  hasScore: boolean;
+  scoreCount: number; // 0, 1, or 2 (out of 2 sub-sections)
   notesCount: number;
   totalQuestions: number;
 }
@@ -23,8 +23,15 @@ export interface InterviewGradingQuestion {
   questionNumber: number;
   questionText: string;
   rubricContent: string | null;
+  subSection: 1 | 2;
   noteId: string | null;
   notes: string | null;
+}
+
+export interface InterviewGradingScoreEntry {
+  subSection: 1 | 2;
+  score: number | null;
+  gradeId: string | null;
 }
 
 export interface InterviewGradingPageData {
@@ -35,8 +42,7 @@ export interface InterviewGradingPageData {
     section: 1 | 2;
   };
   questions: InterviewGradingQuestion[];
-  score: number | null;
-  gradeId: string | null;
+  scores: InterviewGradingScoreEntry[];
 }
 
 // ============================================
@@ -70,16 +76,25 @@ export async function getInterviewAssignments(): Promise<
 
   const appMap = new Map(apps?.map((a) => [a.id, a.anonymous_id]) ?? []);
 
-  // Get all grades for these assignments (score per assignment)
+  // Get all grades for these assignments (2 sub-section scores per assignment)
   const assignmentIds = assignments.map((a) => a.id);
   const { data: grades } = await supabase
     .from("interview_grades")
-    .select("assignment_id, score")
+    .select("assignment_id, sub_section, score")
     .in("assignment_id", assignmentIds);
 
-  const gradeMap = new Map(
-    grades?.map((g) => [g.assignment_id, g.score]) ?? []
-  );
+  // Count non-null scores per assignment
+  const scoreCountMap = new Map<string, number>();
+  if (grades) {
+    for (const g of grades) {
+      if (g.score != null) {
+        scoreCountMap.set(
+          g.assignment_id,
+          (scoreCountMap.get(g.assignment_id) ?? 0) + 1
+        );
+      }
+    }
+  }
 
   // Get all notes for these assignments
   const { data: notes } = await supabase
@@ -117,7 +132,7 @@ export async function getInterviewAssignments(): Promise<
     applicationId: a.application_id,
     anonymousId: appMap.get(a.application_id) ?? "Unknown",
     section: a.section as 1 | 2,
-    hasScore: gradeMap.get(a.id) != null,
+    scoreCount: scoreCountMap.get(a.id) ?? 0,
     notesCount: notesCountMap.get(a.id) ?? 0,
     totalQuestions: sectionQuestionCounts.get(a.section) ?? 0,
   }));
@@ -163,12 +178,13 @@ export async function getInterviewGradingData(
       return { success: false, error: "Application not found" };
     }
 
-    // Fetch interview questions for this section
+    // Fetch interview questions for this section (round)
     const { data: rubrics, error: rubricError } = await supabaseAdmin
       .from("rubrics")
-      .select("question_number, question_text, rubric_content")
+      .select("question_number, question_text, rubric_content, sub_section")
       .eq("question_type", "interview")
       .eq("section", assignment.section)
+      .order("sub_section", { ascending: true })
       .order("question_number", { ascending: true });
 
     if (rubricError) return { success: false, error: rubricError.message };
@@ -192,22 +208,36 @@ export async function getInterviewGradingData(
       ]) ?? []
     );
 
-    // Fetch existing grade (score) for this assignment
-    const { data: existingGrade } = await supabase
+    // Fetch existing grades (2 sub-section scores) for this assignment
+    const { data: existingGrades } = await supabase
       .from("interview_grades")
-      .select("id, score")
-      .eq("assignment_id", assignmentId)
-      .single();
+      .select("id, sub_section, score")
+      .eq("assignment_id", assignmentId);
 
-    // Build questions array
+    const gradeMap2 = new Map(
+      existingGrades?.map((g) => [g.sub_section, { id: g.id, score: g.score }]) ?? []
+    );
+
+    // Build questions array with sub-section info
     const questions: InterviewGradingQuestion[] = rubrics.map((rubric) => {
       const note = noteMap.get(rubric.question_number);
       return {
         questionNumber: rubric.question_number,
         questionText: rubric.question_text,
         rubricContent: rubric.rubric_content,
+        subSection: (rubric.sub_section ?? 1) as 1 | 2,
         noteId: note?.id ?? null,
         notes: note?.notes ?? null,
+      };
+    });
+
+    // Build scores array for both sub-sections
+    const scores: InterviewGradingScoreEntry[] = [1, 2].map((sub) => {
+      const grade = gradeMap2.get(sub);
+      return {
+        subSection: sub as 1 | 2,
+        score: grade?.score ?? null,
+        gradeId: grade?.id ?? null,
       };
     });
 
@@ -221,8 +251,7 @@ export async function getInterviewGradingData(
           section: assignment.section as 1 | 2,
         },
         questions,
-        score: existingGrade?.score ?? null,
-        gradeId: existingGrade?.id ?? null,
+        scores,
       },
     };
   } catch {
@@ -284,6 +313,7 @@ export async function saveInterviewNote(
 
 export async function saveInterviewScore(
   assignmentId: string,
+  subSection: 1 | 2,
   score: number
 ): Promise<ActionResult> {
   try {
@@ -314,15 +344,16 @@ export async function saveInterviewScore(
       };
     }
 
-    // Upsert the grade
+    // Upsert the grade for this sub-section
     const { error } = await supabaseAdmin
       .from("interview_grades")
       .upsert(
         {
           assignment_id: assignmentId,
+          sub_section: subSection,
           score,
         },
-        { onConflict: "assignment_id" }
+        { onConflict: "assignment_id,sub_section" }
       );
 
     if (error) return { success: false, error: error.message };
@@ -356,17 +387,17 @@ export async function submitAllInterviewGrades(
       return { success: false, error: "Not authorized" };
     }
 
-    // Check score exists
-    const { data: grade } = await supabaseAdmin
+    // Check both sub-section scores exist
+    const { data: grades } = await supabaseAdmin
       .from("interview_grades")
-      .select("score")
-      .eq("assignment_id", assignmentId)
-      .single();
+      .select("sub_section, score")
+      .eq("assignment_id", assignmentId);
 
-    if (!grade || grade.score === null) {
+    const scoredSubSections = (grades ?? []).filter((g) => g.score != null);
+    if (scoredSubSections.length < 2) {
       return {
         success: false,
-        error: "Please provide a section score before submitting.",
+        error: `Please provide scores for both sub-sections before submitting (${scoredSubSections.length}/2 scored).`,
       };
     }
 

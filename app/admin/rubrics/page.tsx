@@ -54,10 +54,12 @@ export default function RubricsPage() {
     loadRubrics();
   };
 
-  // Group rubrics by category
+  // Group rubrics by category (5 groups)
   const writtenRubrics = rubrics.filter((r) => r.question_type === "written");
-  const interviewS1 = rubrics.filter((r) => r.question_type === "interview" && r.section === 1);
-  const interviewS2 = rubrics.filter((r) => r.question_type === "interview" && r.section === 2);
+  const interviewR1Sub1 = rubrics.filter((r) => r.question_type === "interview" && r.section === 1 && r.sub_section === 1);
+  const interviewR1Sub2 = rubrics.filter((r) => r.question_type === "interview" && r.section === 1 && r.sub_section === 2);
+  const interviewR2Sub1 = rubrics.filter((r) => r.question_type === "interview" && r.section === 2 && r.sub_section === 1);
+  const interviewR2Sub2 = rubrics.filter((r) => r.question_type === "interview" && r.section === 2 && r.sub_section === 2);
 
   return (
     <div>
@@ -106,14 +108,26 @@ export default function RubricsPage() {
             onDelete={handleDelete}
           />
           <RubricGroup
-            title="Interview Rubrics — Section 1"
-            rubrics={interviewS1}
+            title="Interview — Round 1, Sub-section 1"
+            rubrics={interviewR1Sub1}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
           <RubricGroup
-            title="Interview Rubrics — Section 2"
-            rubrics={interviewS2}
+            title="Interview — Round 1, Sub-section 2"
+            rubrics={interviewR1Sub2}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+          <RubricGroup
+            title="Interview — Round 2, Sub-section 1"
+            rubrics={interviewR2Sub1}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+          <RubricGroup
+            title="Interview — Round 2, Sub-section 2"
+            rubrics={interviewR2Sub2}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
@@ -192,6 +206,7 @@ interface RubricFormData {
   questionText: string;
   rubricContent: string;
   section: number | null;
+  subSection: number | null;
 }
 
 const RubricFormModal = ({
@@ -213,6 +228,7 @@ const RubricFormModal = ({
         questionText: rubric.question_text,
         rubricContent: rubric.rubric_content ?? "",
         section: rubric.section,
+        subSection: rubric.sub_section,
       };
     }
     return {
@@ -221,6 +237,7 @@ const RubricFormModal = ({
       questionText: "",
       rubricContent: "",
       section: null,
+      subSection: null,
     };
   });
 
@@ -236,6 +253,7 @@ const RubricFormModal = ({
       ...prev,
       questionType: type,
       section: type === "written" ? null : prev.section ?? 1,
+      subSection: type === "written" ? null : prev.subSection ?? 1,
     }));
   };
 
@@ -251,6 +269,7 @@ const RubricFormModal = ({
       questionText: form.questionText,
       rubricContent: form.rubricContent,
       section: form.section,
+      subSection: form.subSection,
     });
 
     if (result.success) {
@@ -294,22 +313,38 @@ const RubricFormModal = ({
             </select>
           </div>
 
-          {/* Section (interview only) */}
+          {/* Round (interview only) */}
           {form.questionType === "interview" && (
-            <div>
-              <label htmlFor="rubric-section" className="block text-sm font-medium text-gray-700">
-                Section
-              </label>
-              <select
-                id="rubric-section"
-                value={form.section ?? 1}
-                onChange={(e) => updateField("section", Number(e.target.value))}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value={1}>Section 1</option>
-                <option value={2}>Section 2</option>
-              </select>
-            </div>
+            <>
+              <div>
+                <label htmlFor="rubric-section" className="block text-sm font-medium text-gray-700">
+                  Round
+                </label>
+                <select
+                  id="rubric-section"
+                  value={form.section ?? 1}
+                  onChange={(e) => updateField("section", Number(e.target.value))}
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value={1}>Round 1</option>
+                  <option value={2}>Round 2</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="rubric-subsection" className="block text-sm font-medium text-gray-700">
+                  Sub-section
+                </label>
+                <select
+                  id="rubric-subsection"
+                  value={form.subSection ?? 1}
+                  onChange={(e) => updateField("subSection", Number(e.target.value))}
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value={1}>Sub-section 1</option>
+                  <option value={2}>Sub-section 2</option>
+                </select>
+              </div>
+            </>
           )}
 
           {/* Question Number */}
