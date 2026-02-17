@@ -267,6 +267,7 @@ export async function getApplicantDetail(
           anonymousId: app.anonymous_id,
           firstName: app.first_name,
           lastName: app.last_name,
+          pronouns: app.pronouns ?? "",
           photoUrl: app.photo_url,
           major: app.major,
           graduationYear: app.graduation_year,

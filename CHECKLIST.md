@@ -137,6 +137,19 @@
 ### 8.4 Dashboard Enhancement
 - [x] Enhance `app/admin/page.tsx` — add status breakdown cards (auto_accept, discuss, auto_reject, accepted, rejected counts)
 
-### 8.5 Polish & Deploy
+### 8.5 Applicant Detail View (Admin)
+- [x] Reuse `getApplicantDetail()` from `app/admin/deliberations/actions.ts` — no separate action needed, imports `DeliberationDetail` type directly
+- [x] Make table rows clickable → navigate to `app/admin/applicants/[id]/page.tsx`
+- [x] Create `app/admin/applicants/[id]/page.tsx` — server component, calls `getApplicantDetail()`, handles not-found error state
+- [x] Create `app/admin/applicants/[id]/ApplicantProfile.tsx` — full profile card (photo, demographics, contact, written responses + grader scores via reused accordions, interview grades + notes, score summary, status badge)
+- [x] Add back-link to applicants list
+
+### 8.6 Application Form Updates
+- [x] Add `pronouns` field — text input, Zod validation, DB column (`TEXT NOT NULL DEFAULT ''`), types, server action, display in ApplicantCard/ApplicantProfile/export
+- [x] Change `graduation_year` from INTEGER dropdown to TEXT text input — placeholder "ie. Spring 2027", updated schema/types/validation/actions/display
+- [x] Change written responses from 500 char max to 250 word max — word counter UI, Zod `.refine()` validation, removed `maxLength` from textarea
+- [x] DB migration: `DROP CHECK constraint`, `ALTER COLUMN graduation_year TYPE TEXT`, `ADD COLUMN pronouns`
+
+### 8.7 Polish & Deploy
 - [x] Loading/error state audit across app — added `error.tsx` + `loading.tsx` boundaries for admin & grader
 - [ ] Deploy to Vercel

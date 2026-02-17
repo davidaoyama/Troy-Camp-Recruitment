@@ -8,7 +8,7 @@ export default function Home() {
           Troy Camp
         </h1>
         <p className="mt-2 text-xl text-gray-600">
-          Transfer Counselor Applications
+          Counselor Applications
         </p>
         <p className="mt-4 text-gray-500 max-w-md mx-auto">
           Spring 2026 recruitment is now open. Submit your application below.

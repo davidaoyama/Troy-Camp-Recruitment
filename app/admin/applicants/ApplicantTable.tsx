@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { ApplicationRow } from "@/lib/types";
 
 type SortKey = "anonymous_id" | "last_name" | "total_score" | "status";
@@ -28,6 +29,7 @@ export const ApplicantTable = ({
 }: {
   applicants: ApplicationRow[];
 }) => {
+  const router = useRouter();
   const [sortKey, setSortKey] = useState<SortKey>("anonymous_id");
   const [sortAsc, setSortAsc] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -130,7 +132,11 @@ export const ApplicantTable = ({
               </tr>
             ) : (
               sorted.map((app) => (
-                <tr key={app.id} className="hover:bg-gray-50">
+                <tr
+                  key={app.id}
+                  onClick={() => router.push(`/admin/applicants/${app.id}`)}
+                  className="hover:bg-gray-50 cursor-pointer"
+                >
                   <td className="px-4 py-3 font-medium text-gray-900">
                     {app.anonymous_id}
                   </td>

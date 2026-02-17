@@ -8,6 +8,10 @@ const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png"];
 // Application Form Zod Schema
 // ============================================
 
+function wordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
 export const applicationSchema = z.object({
   firstName: z
     .string()
@@ -20,6 +24,12 @@ export const applicationSchema = z.object({
     .trim()
     .min(2, "Last name must be at least 2 characters")
     .max(50, "Last name must be 50 characters or fewer"),
+
+  pronouns: z
+    .string()
+    .trim()
+    .min(1, "Pronouns are required")
+    .max(50, "Pronouns must be 50 characters or fewer"),
 
   email: z
     .string()
@@ -39,10 +49,10 @@ export const applicationSchema = z.object({
     .max(100, "Major must be 100 characters or fewer"),
 
   graduationYear: z
-    .number()
-    .int()
-    .min(2025, "Graduation year must be 2025 or later")
-    .max(2030, "Graduation year must be 2030 or earlier"),
+    .string()
+    .trim()
+    .min(1, "Graduation year is required")
+    .max(20, "Graduation year must be 20 characters or fewer"),
 
   gender: z
     .string()
@@ -57,8 +67,8 @@ export const applicationSchema = z.object({
       z
         .string()
         .trim()
-        .min(50, "Response must be at least 50 characters")
-        .max(500, "Response must be 500 characters or fewer")
+        .min(1, "Response is required")
+        .refine((val) => wordCount(val) <= 250, "Response must be 250 words or fewer")
     )
     .length(5, "All 5 written responses are required"),
 });

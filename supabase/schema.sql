@@ -26,11 +26,12 @@ CREATE TABLE applications (
   anonymous_id TEXT UNIQUE NOT NULL,  -- "TC 001", "TC 002", etc.
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
+  pronouns TEXT NOT NULL DEFAULT '',
   email TEXT NOT NULL,
   phone_number TEXT NOT NULL,
   photo_url TEXT NOT NULL,
   major TEXT NOT NULL,
-  graduation_year INTEGER NOT NULL CHECK (graduation_year BETWEEN 2025 AND 2030),
+  graduation_year TEXT NOT NULL,          -- e.g. "Spring 2027"
   gender TEXT NOT NULL,
   spanish_fluent BOOLEAN NOT NULL,
   can_attend_camp BOOLEAN NOT NULL,

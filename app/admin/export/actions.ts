@@ -132,6 +132,7 @@ async function buildExportRows(
       anonymousId: app.anonymous_id,
       firstName: app.first_name,
       lastName: app.last_name,
+      pronouns: app.pronouns ?? "",
       email: app.email,
       phoneNumber: app.phone_number,
       major: app.major,

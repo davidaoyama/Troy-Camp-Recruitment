@@ -5,11 +5,12 @@
 export interface ApplicationFormData {
   firstName: string;
   lastName: string;
+  pronouns: string;
   email: string;
   phoneNumber: string;
   photo: File | null;
   major: string;
-  graduationYear: number;
+  graduationYear: string;
   gender: string;
   spanishFluent: boolean;
   canAttendCamp: boolean;
@@ -34,11 +35,12 @@ export interface ApplicationRow {
   anonymous_id: string;
   first_name: string;
   last_name: string;
+  pronouns: string;
   email: string;
   phone_number: string;
   photo_url: string;
   major: string;
-  graduation_year: number;
+  graduation_year: string;
   gender: string;
   spanish_fluent: boolean;
   can_attend_camp: boolean;
@@ -224,7 +226,8 @@ export interface DeliberationDetail {
     lastName: string;
     photoUrl: string;
     major: string;
-    graduationYear: number;
+    pronouns: string;
+    graduationYear: string;
     gender: string;
     spanishFluent: boolean;
     canAttendCamp: boolean;
@@ -247,10 +250,11 @@ export interface ExportApplicantRow {
   anonymousId: string;
   firstName: string;
   lastName: string;
+  pronouns: string;
   email: string;
   phoneNumber: string;
   major: string;
-  graduationYear: number;
+  graduationYear: string;
   gender: string;
   spanishFluent: boolean;
   canAttendCamp: boolean;

@@ -21,8 +21,9 @@ export const ApplicantCard = ({ detail }: ApplicantCardProps) => {
           />
 
           <div className="space-y-2 text-sm">
+            <InfoRow label="Pronouns" value={applicant.pronouns} />
             <InfoRow label="Major" value={applicant.major} />
-            <InfoRow label="Graduation" value={String(applicant.graduationYear)} />
+            <InfoRow label="Graduation" value={applicant.graduationYear} />
             <InfoRow label="Gender" value={applicant.gender} />
             <InfoRow
               label="Spanish Fluency"

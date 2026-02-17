@@ -6,8 +6,11 @@ import { WRITTEN_QUESTIONS } from "@/lib/questions";
 import { validatePhoto } from "@/lib/validations";
 import { submitApplication } from "./actions";
 
-const GRADUATION_YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
 const GENDER_OPTIONS = ["Male", "Female", "Non-binary", "Prefer not to say"];
+
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
 
 export default function ApplyPage() {
   const router = useRouter();
@@ -16,12 +19,13 @@ export default function ApplyPage() {
   // ---- Form state ----
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [pronouns, setPronouns] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [major, setMajor] = useState("");
-  const [graduationYear, setGraduationYear] = useState<number>(0);
+  const [graduationYear, setGraduationYear] = useState("");
   const [gender, setGender] = useState("");
   const [spanishFluent, setSpanishFluent] = useState<boolean | null>(null);
   const [canAttendCamp, setCanAttendCamp] = useState<boolean | null>(null);
@@ -70,10 +74,11 @@ export default function ApplyPage() {
       const fd = new FormData();
       fd.set("firstName", firstName);
       fd.set("lastName", lastName);
+      fd.set("pronouns", pronouns);
       fd.set("email", email);
       fd.set("phoneNumber", phoneNumber);
       fd.set("major", major);
-      fd.set("graduationYear", String(graduationYear));
+      fd.set("graduationYear", graduationYear);
       fd.set("gender", gender);
       fd.set("spanishFluent", String(spanishFluent ?? false));
       fd.set("canAttendCamp", String(canAttendCamp ?? false));
@@ -110,7 +115,7 @@ export default function ApplyPage() {
           &larr; Back to Home
         </a>
         <h1 className="text-3xl font-bold text-center mb-2">
-          Transfer Counselor Application
+          Troy Camp Counselor Application
         </h1>
         <p className="text-center text-gray-600 mb-8">
           Please fill out all fields below. All information is required.
@@ -141,6 +146,7 @@ export default function ApplyPage() {
                   id="firstName"
                   type="text"
                   required
+                  placeholder="ie. Troy"
                   minLength={2}
                   maxLength={50}
                   value={firstName}
@@ -156,6 +162,7 @@ export default function ApplyPage() {
                   id="lastName"
                   type="text"
                   required
+                  placeholder="ie. Camp"
                   minLength={2}
                   maxLength={50}
                   value={lastName}
@@ -165,15 +172,32 @@ export default function ApplyPage() {
               </div>
             </div>
 
+            <div>
+              <label htmlFor="pronouns" className="block text-sm font-medium text-gray-700 mb-1">
+                Pronouns
+              </label>
+              <input
+                id="pronouns"
+                type="text"
+                required
+                placeholder="ie. he/him, she/her, they/them"
+                maxLength={50}
+                value={pronouns}
+                onChange={(e) => setPronouns(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
+                  Preferred Email
                 </label>
                 <input
                   id="email"
                   type="email"
                   required
+                  placeholder="ie. troycamp@usc.edu"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -187,6 +211,7 @@ export default function ApplyPage() {
                   id="phoneNumber"
                   type="tel"
                   required
+                  placeholder="ie. 1234567890"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -197,7 +222,7 @@ export default function ApplyPage() {
             {/* Photo Upload */}
             <div>
               <label htmlFor="photo" className="block text-sm font-medium text-gray-700 mb-1">
-                Photo (JPG or PNG, max 5MB)
+                Headshot Photo (JPG or PNG, max 5MB)
               </label>
               <input
                 ref={fileInputRef}
@@ -230,6 +255,7 @@ export default function ApplyPage() {
                 id="major"
                 type="text"
                 required
+                placeholder="Business Administration"
                 minLength={2}
                 maxLength={100}
                 value={major}
@@ -243,22 +269,16 @@ export default function ApplyPage() {
                 <label htmlFor="graduationYear" className="block text-sm font-medium text-gray-700 mb-1">
                   Graduation Year
                 </label>
-                <select
+                <input
                   id="graduationYear"
+                  type="text"
                   required
-                  value={graduationYear || ""}
-                  onChange={(e) => setGraduationYear(Number(e.target.value))}
+                  placeholder="ie. Spring 2027"
+                  maxLength={20}
+                  value={graduationYear}
+                  onChange={(e) => setGraduationYear(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="" disabled>
-                    Select year
-                  </option>
-                  {GRADUATION_YEARS.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div>
@@ -285,7 +305,7 @@ export default function ApplyPage() {
 
               <div>
                 <label htmlFor="spanishFluent" className="block text-sm font-medium text-gray-700 mb-1">
-                  Spanish Fluent?
+                  Spanish Fluency
                 </label>
                 <select
                   id="spanishFluent"
@@ -297,15 +317,16 @@ export default function ApplyPage() {
                   <option value="" disabled>
                     Select
                   </option>
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
+                  <option value="true">Fluent</option>
+                  <option value="false">Conversational</option>
+                  <option value="false">Not fluent</option>
                 </select>
               </div>
             </div>
 
             <div>
               <label htmlFor="canAttendCamp" className="block text-sm font-medium text-gray-700 mb-1">
-                Can you attend Camp Troy Camp?
+                Can you attend Camp this year? (look at posted date)
               </label>
               <select
                 id="canAttendCamp"
@@ -329,13 +350,12 @@ export default function ApplyPage() {
               Written Responses
             </legend>
             <p className="text-sm text-gray-500">
-              Each response must be between 50 and 500 characters.
+              The max word count for each response is 250 words. You may not need all 250 though!
             </p>
 
             {WRITTEN_QUESTIONS.map((q, i) => {
-              const charCount = writtenResponses[i].length;
-              const isUnder = charCount > 0 && charCount < 50;
-              const isOver = charCount > 500;
+              const words = countWords(writtenResponses[i]);
+              const isOver = words > 250;
 
               return (
                 <div key={q.number}>
@@ -349,31 +369,21 @@ export default function ApplyPage() {
                     id={`q${q.number}`}
                     required
                     rows={5}
-                    maxLength={500}
                     value={writtenResponses[i]}
                     onChange={(e) => handleResponseChange(i, e.target.value)}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
-                  <div className="mt-1 flex justify-between text-xs">
-                    {isUnder && (
-                      <span className="text-amber-600">
-                        Minimum 50 characters required
-                      </span>
-                    )}
-                    {isOver && (
-                      <span className="text-red-600">Over 500 character limit</span>
-                    )}
-                    {!isUnder && !isOver && <span />}
+                  <div className="mt-1 flex justify-end text-xs">
                     <span
                       className={
-                        charCount > 500
+                        isOver
                           ? "text-red-600"
-                          : charCount >= 400
+                          : words >= 200
                             ? "text-amber-600"
                             : "text-gray-400"
                       }
                     >
-                      {charCount}/500
+                      {words}/250 words
                     </span>
                   </div>
                 </div>
