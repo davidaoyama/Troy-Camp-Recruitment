@@ -302,6 +302,42 @@ export interface StatusOverview {
 }
 
 // ============================================
+// User Detail Types (admin view of grader/admin)
+// ============================================
+
+export interface UserWrittenAssignment {
+  applicationId: string;
+  anonymousId: string;
+  firstName: string;
+  lastName: string;
+  grades: {
+    questionNumber: number;
+    questionText: string;
+    score: number | null;
+  }[];
+}
+
+export interface UserInterviewAssignment {
+  applicationId: string;
+  anonymousId: string;
+  firstName: string;
+  lastName: string;
+  section: number;
+  score: number | null;
+  notes: {
+    questionNumber: number;
+    questionText: string;
+    notes: string;
+  }[];
+}
+
+export interface UserDetail {
+  user: UserRow;
+  writtenAssignments: UserWrittenAssignment[];
+  interviewAssignments: UserInterviewAssignment[];
+}
+
+// ============================================
 // Server Action Results (generic)
 // ============================================
 

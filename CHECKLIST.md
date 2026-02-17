@@ -153,3 +153,10 @@
 ### 8.7 Polish & Deploy
 - [x] Loading/error state audit across app — added `error.tsx` + `loading.tsx` boundaries for admin & grader
 - [ ] Deploy to Vercel
+
+### 8.8 User Detail View (Admin)
+- [x] Add `UserDetail`, `UserWrittenAssignment`, `UserInterviewAssignment` types to `lib/types.ts`
+- [x] Add `getUserDetail()` server action to `app/admin/users/actions.ts` — fetches written grades + interview assignments/grades/notes for a user, with applicant TC# and names
+- [x] Create `app/admin/users/[id]/page.tsx` — server component, calls `getUserDetail()`, handles not-found error state
+- [x] Create `app/admin/users/[id]/UserProfile.tsx` — user info card, expandable written assignment cards (TC#, name, per-question scores), expandable interview assignment cards (section, score, notes), link to applicant detail
+- [x] Make username column in users table clickable → navigate to `/admin/users/[id]`

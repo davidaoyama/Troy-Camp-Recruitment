@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import type { UserRow, CreateUserInput } from "@/lib/types";
 import { getUsers, createUser, deleteUser } from "./actions";
 
@@ -112,8 +113,15 @@ export default function UsersPage() {
               </tr>
             ) : (
               users.map((user) => (
-                <tr key={user.id}>
-                  <td className="px-4 py-3 text-gray-900">{user.username}</td>
+                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/admin/users/${user.id}`}
+                      className="text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      {user.username}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-gray-700">{user.full_name}</td>
                   <td className="px-4 py-3 text-gray-700">{user.tc_name}</td>
                   <td className="px-4 py-3">
