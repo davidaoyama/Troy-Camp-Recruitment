@@ -26,7 +26,7 @@ export default function ApplySuccessPage() {
         </h1>
 
         <p className="text-gray-600 mb-2">
-          Thank you for applying to be a Transfer Counselor.
+          Thank you for applying to be a Troy Camp Counselor!
         </p>
 
         <p className="text-gray-500 text-sm mb-8">

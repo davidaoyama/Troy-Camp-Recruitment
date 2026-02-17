@@ -80,8 +80,8 @@ export async function getWrittenAssignments(): Promise<WrittenAssignmentView[]> 
   });
 }
 
-export async function autoAssignWrittenGrading(): Promise<
-  ActionResult<{ assignedCount: number }>
+export async function autoFillWrittenGrading(): Promise<
+  ActionResult<{ filledCount: number }>
 > {
   try {
     await requireAdmin();
@@ -110,27 +110,35 @@ export async function autoAssignWrittenGrading(): Promise<
       };
     }
 
-    // 3. Check for existing assignments
-    const { count: existingCount } = await supabaseAdmin
+    // 3. Get existing assignments to find who already has graders
+    const { data: existingGrades } = await supabaseAdmin
       .from("written_grades")
-      .select("*", { count: "exact", head: true })
+      .select("application_id, grader_id")
       .in(
         "application_id",
         applications.map((a) => a.id)
       );
 
-    if (existingCount && existingCount > 0) {
-      return {
-        success: false,
-        error:
-          "Written assignments already exist. Clear them before re-assigning.",
-      };
+    // Build map: application_id -> Set of assigned grader IDs
+    const assignedMap = new Map<string, Set<string>>();
+    for (const g of existingGrades ?? []) {
+      const set = assignedMap.get(g.application_id) ?? new Set();
+      set.add(g.grader_id);
+      assignedMap.set(g.application_id, set);
     }
 
-    // 4. Balanced round-robin assignment
+    // 4. Compute current grader workload from existing assignments
     const graderWorkload = new Map<string, number>();
     graders.forEach((g) => graderWorkload.set(g.id, 0));
+    for (const graderSet of assignedMap.values()) {
+      for (const graderId of graderSet) {
+        if (graderWorkload.has(graderId)) {
+          graderWorkload.set(graderId, (graderWorkload.get(graderId) ?? 0) + 1);
+        }
+      }
+    }
 
+    // 5. Only assign to apps with < 3 graders
     const rows: {
       application_id: string;
       grader_id: string;
@@ -138,13 +146,20 @@ export async function autoAssignWrittenGrading(): Promise<
       score: null;
     }[] = [];
 
+    let filledCount = 0;
+
     for (const app of applications) {
-      // Pick 3 graders with the lowest workload
-      const sorted = [...graders].sort(
+      const existingGraders = assignedMap.get(app.id) ?? new Set();
+      const needed = GRADERS_PER_APP - existingGraders.size;
+      if (needed <= 0) continue;
+
+      // Pick graders not already assigned to this app, sorted by lowest workload
+      const available = graders.filter((g) => !existingGraders.has(g.id));
+      const sorted = [...available].sort(
         (a, b) =>
           (graderWorkload.get(a.id) ?? 0) - (graderWorkload.get(b.id) ?? 0)
       );
-      const assigned = sorted.slice(0, GRADERS_PER_APP);
+      const assigned = sorted.slice(0, needed);
 
       for (const grader of assigned) {
         for (let q = 1; q <= QUESTIONS_PER_APP; q++) {
@@ -160,9 +175,18 @@ export async function autoAssignWrittenGrading(): Promise<
           (graderWorkload.get(grader.id) ?? 0) + 1
         );
       }
+
+      filledCount++;
     }
 
-    // 5. Batch insert (Supabase handles up to ~1000 rows per call)
+    if (rows.length === 0) {
+      return {
+        success: false,
+        error: "All applicants already have 3 graders assigned.",
+      };
+    }
+
+    // 6. Batch insert
     const BATCH_SIZE = 500;
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
       const batch = rows.slice(i, i + BATCH_SIZE);
@@ -178,7 +202,78 @@ export async function autoAssignWrittenGrading(): Promise<
       }
     }
 
-    return { success: true, assignedCount: applications.length };
+    return { success: true, filledCount };
+  } catch {
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function getGraders(): Promise<
+  Pick<UserRow, "id" | "full_name">[]
+> {
+  await requireAdmin();
+
+  const { data } = await supabaseAdmin
+    .from("users")
+    .select("id, full_name")
+    .eq("role", "grader")
+    .order("full_name", { ascending: true });
+
+  return (data ?? []) as Pick<UserRow, "id" | "full_name">[];
+}
+
+export async function saveWrittenAssignment(
+  applicationId: string,
+  graderIds: [string, string, string]
+): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+
+    // Validate all 3 graders are different
+    const unique = new Set(graderIds);
+    if (unique.size !== 3) {
+      return { success: false, error: "All 3 graders must be different" };
+    }
+
+    if (graderIds.some((id) => !id)) {
+      return { success: false, error: "All 3 graders must be selected" };
+    }
+
+    // Delete existing ungraded written_grades for this application
+    await supabaseAdmin
+      .from("written_grades")
+      .delete()
+      .eq("application_id", applicationId)
+      .is("score", null);
+
+    // Insert new rows: 3 graders × 5 questions = 15 rows
+    const rows: {
+      application_id: string;
+      grader_id: string;
+      question_number: number;
+      score: null;
+    }[] = [];
+
+    for (const graderId of graderIds) {
+      for (let q = 1; q <= QUESTIONS_PER_APP; q++) {
+        rows.push({
+          application_id: applicationId,
+          grader_id: graderId,
+          question_number: q,
+          score: null,
+        });
+      }
+    }
+
+    const { error } = await supabaseAdmin
+      .from("written_grades")
+      .insert(rows);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
   } catch {
     return { success: false, error: "An unexpected error occurred" };
   }

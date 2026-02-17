@@ -255,7 +255,7 @@ export default function ApplyPage() {
                 id="major"
                 type="text"
                 required
-                placeholder="Business Administration"
+                placeholder="ie. Business Administration"
                 minLength={2}
                 maxLength={100}
                 value={major}

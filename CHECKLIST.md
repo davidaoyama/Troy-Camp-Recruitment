@@ -160,3 +160,10 @@
 - [x] Create `app/admin/users/[id]/page.tsx` — server component, calls `getUserDetail()`, handles not-found error state
 - [x] Create `app/admin/users/[id]/UserProfile.tsx` — user info card, expandable written assignment cards (TC#, name, per-question scores), expandable interview assignment cards (section, score, notes), link to applicant detail
 - [x] Make username column in users table clickable → navigate to `/admin/users/[id]`
+
+### 8.9 Written Grading Assignments Improvements
+- [x] Update `autoAssignWrittenGrading()` to auto-fill mode — skip applicants with ≥3 graders, only assign to under-assigned ones, rename button to "Auto-Fill Graders"
+- [x] Add `getGraders()` server action to `app/admin/assignments/written/actions.ts`
+- [x] Add `saveWrittenAssignment()` server action — deletes existing ungraded written_grades for app, inserts new rows (3 graders × 5 questions = 15 rows), validates all 3 graders different
+- [x] Update `page.tsx` — per-row grader dropdowns (3 per applicant) + Save button, following interview assignment pattern (GraderSelect, AssignmentRow)
+- [x] Edge case verification: auto-fill with partial assignments, duplicate grader validation, fewer than 3 graders error
