@@ -1,6 +1,6 @@
 # TC Deliberations
 
-Internal recruitment management system for Troy Camp (TC), a student-run organization at USC. Streamlines the Transfer Counselor selection process from application intake through grading, deliberation, and final decisions.
+Internal recruitment management system for Troy Camp (TC), a student-run organization at USC. Streamlines the Troy Camp Counselor selection process from application intake through grading, deliberation, and final decisions.
 
 ## What It Does
 
