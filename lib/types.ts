@@ -342,6 +342,22 @@ export interface UserDetail {
 }
 
 // ============================================
+// Analytics Types
+// ============================================
+
+export interface AnalyticsData {
+  totalApplicants: number;
+  avgScore: number | null;
+  statusBreakdown: { name: string; count: number }[];
+  genderBreakdown: { name: string; count: number }[];
+  majorBreakdown: { name: string; count: number }[];
+  gradYearBreakdown: { name: string; count: number }[];
+  spanishFluent: { yes: number; no: number };
+  canAttendCamp: { yes: number; no: number };
+  scoreDistribution: { range: string; count: number }[];
+}
+
+// ============================================
 // Server Action Results (generic)
 // ============================================
 

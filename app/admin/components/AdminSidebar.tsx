@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/admin/assignments/interview", label: "Interview Assignments" },
   { href: "/admin/rubrics", label: "Rubrics" },
   { href: "/admin/deliberations", label: "Deliberations" },
+  { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/export", label: "Export Data" },
   { href: "/admin/users", label: "Manage Users" },
 ];
