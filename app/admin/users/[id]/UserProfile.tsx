@@ -208,14 +208,19 @@ const InterviewAssignmentCard = ({
             {assignment.firstName} {assignment.lastName}
           </span>
           <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-            Section {assignment.section}
+            Round {assignment.section}
           </span>
         </div>
         <div className="flex items-center gap-3">
-          {assignment.score !== null ? (
-            <span className="text-sm font-semibold text-gray-900">
-              {assignment.score}/5
-            </span>
+          {assignment.scores.length > 0 ? (
+            assignment.scores.map((s) => (
+              <span
+                key={s.subSection}
+                className="text-xs font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700"
+              >
+                Sub {s.subSection}: {s.score !== null ? `${s.score}/5` : "N/A"}
+              </span>
+            ))
           ) : (
             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
               Not graded

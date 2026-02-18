@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   getWrittenAssignments,
   autoFillWrittenGrading,
@@ -11,6 +11,8 @@ import {
 } from "./actions";
 import type { UserRow } from "@/lib/types";
 
+type GraderTuple = [string, string, string];
+
 export default function WrittenAssignmentsPage() {
   const [assignments, setAssignments] = useState<WrittenAssignmentView[]>([]);
   const [graders, setGraders] = useState<Pick<UserRow, "id" | "full_name">[]>(
@@ -19,8 +21,33 @@ export default function WrittenAssignmentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFilling, setIsFilling] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Lifted grader selections: appId -> [grader1, grader2, grader3]
+  const [selections, setSelections] = useState<Record<string, GraderTuple>>(
+    {}
+  );
+  const [savedSelections, setSavedSelections] = useState<
+    Record<string, GraderTuple>
+  >({});
+
+  const initializeSelections = useCallback(
+    (data: WrittenAssignmentView[]) => {
+      const sel: Record<string, GraderTuple> = {};
+      for (const a of data) {
+        sel[a.applicationId] = [
+          a.graders[0]?.id ?? "",
+          a.graders[1]?.id ?? "",
+          a.graders[2]?.id ?? "",
+        ];
+      }
+      setSelections(sel);
+      setSavedSelections(sel);
+    },
+    []
+  );
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -31,16 +58,96 @@ export default function WrittenAssignmentsPage() {
       ]);
       setAssignments(assignData);
       setGraders(graderData);
+      initializeSelections(assignData);
     } catch {
       setError("Failed to load assignments");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [initializeSelections]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Compute dirty rows
+  const dirtyAppIds = useMemo(() => {
+    const dirty: string[] = [];
+    for (const appId of Object.keys(selections)) {
+      const cur = selections[appId];
+      const saved = savedSelections[appId];
+      if (!saved || cur[0] !== saved[0] || cur[1] !== saved[1] || cur[2] !== saved[2]) {
+        dirty.push(appId);
+      }
+    }
+    return dirty;
+  }, [selections, savedSelections]);
+
+  const hasDirtyRows = dirtyAppIds.length > 0;
+
+  const updateGrader = (appId: string, index: 0 | 1 | 2, value: string) => {
+    setSelections((prev) => {
+      const tuple = [...(prev[appId] ?? ["", "", ""])] as GraderTuple;
+      tuple[index] = value;
+      return { ...prev, [appId]: tuple };
+    });
+    // Clear messages when user makes changes
+    setSuccessMsg(null);
+    setError(null);
+  };
+
+  const handleSaveAll = async () => {
+    setError(null);
+    setSuccessMsg(null);
+    setIsSaving(true);
+
+    // Validate all dirty rows before saving
+    const toSave: { appId: string; graderIds: GraderTuple }[] = [];
+    for (const appId of dirtyAppIds) {
+      const [g1, g2, g3] = selections[appId];
+      if (!g1 || !g2 || !g3) {
+        setError("All 3 graders must be selected for every modified row.");
+        setIsSaving(false);
+        return;
+      }
+      if (new Set([g1, g2, g3]).size !== 3) {
+        setError("All 3 graders must be different for every modified row.");
+        setIsSaving(false);
+        return;
+      }
+      toSave.push({ appId, graderIds: [g1, g2, g3] });
+    }
+
+    // Save all dirty rows in parallel
+    const results = await Promise.all(
+      toSave.map((item) =>
+        saveWrittenAssignment(item.appId, item.graderIds).then((r) => ({
+          appId: item.appId,
+          ...r,
+        }))
+      )
+    );
+
+    const failures = results.filter((r) => !r.success);
+
+    if (failures.length > 0) {
+      setError(
+        `${failures.length} row(s) failed to save. ${failures[0] && "error" in failures[0] ? failures[0].error : ""}`
+      );
+    } else {
+      setSuccessMsg(`Saved ${toSave.length} assignment(s) successfully.`);
+      // Update saved state to match current selections (no reload)
+      setSavedSelections((prev) => {
+        const next = { ...prev };
+        for (const item of toSave) {
+          next[item.appId] = [...selections[item.appId]] as GraderTuple;
+        }
+        return next;
+      });
+    }
+
+    setIsSaving(false);
+  };
 
   const hasAssignments = assignments.some((a) => a.graders.length > 0);
 
@@ -153,16 +260,13 @@ export default function WrittenAssignmentsPage() {
               <th className="text-left px-4 py-3 font-medium text-gray-600">
                 Progress
               </th>
-              <th className="text-right px-4 py-3 font-medium text-gray-600">
-                Actions
-              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {isLoading ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={5}
                   className="px-4 py-8 text-center text-gray-500"
                 >
                   Loading assignments...
@@ -171,133 +275,93 @@ export default function WrittenAssignmentsPage() {
             ) : assignments.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={5}
                   className="px-4 py-8 text-center text-gray-500"
                 >
                   No applications found.
                 </td>
               </tr>
             ) : (
-              assignments.map((a) => (
-                <AssignmentRow
-                  key={a.applicationId}
-                  assignment={a}
-                  graders={graders}
-                  onSaved={load}
-                />
-              ))
+              assignments.map((a) => {
+                const isDirty = dirtyAppIds.includes(a.applicationId);
+                const sel = selections[a.applicationId] ?? ["", "", ""];
+                return (
+                  <tr
+                    key={a.applicationId}
+                    className={isDirty ? "bg-amber-50" : "hover:bg-gray-50"}
+                  >
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      <div className="flex items-center gap-2">
+                        {a.anonymousId}
+                        {isDirty && (
+                          <span className="inline-block w-2 h-2 rounded-full bg-amber-400" title="Unsaved changes" />
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <GraderSelect
+                        value={sel[0]}
+                        onChange={(v) => updateGrader(a.applicationId, 0, v)}
+                        graders={graders}
+                        excludeIds={[sel[1], sel[2]]}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <GraderSelect
+                        value={sel[1]}
+                        onChange={(v) => updateGrader(a.applicationId, 1, v)}
+                        graders={graders}
+                        excludeIds={[sel[0], sel[2]]}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <GraderSelect
+                        value={sel[2]}
+                        onChange={(v) => updateGrader(a.applicationId, 2, v)}
+                        graders={graders}
+                        excludeIds={[sel[0], sel[1]]}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      {a.graders.length > 0 ? (
+                        <span
+                          className={`text-xs font-medium ${
+                            a.gradedCount === 15
+                              ? "text-green-600"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {a.gradedCount}/15
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">&mdash;</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Sticky Save All button */}
+      {hasDirtyRows && (
+        <div className="sticky bottom-4 mt-4 flex justify-end">
+          <button
+            onClick={handleSaveAll}
+            disabled={isSaving}
+            className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {isSaving
+              ? "Saving..."
+              : `Save All Changes (${dirtyAppIds.length})`}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
-
-const AssignmentRow = ({
-  assignment,
-  graders,
-  onSaved,
-}: {
-  assignment: WrittenAssignmentView;
-  graders: Pick<UserRow, "id" | "full_name">[];
-  onSaved: () => void;
-}) => {
-  const [grader1, setGrader1] = useState(assignment.graders[0]?.id ?? "");
-  const [grader2, setGrader2] = useState(assignment.graders[1]?.id ?? "");
-  const [grader3, setGrader3] = useState(assignment.graders[2]?.id ?? "");
-  const [isSaving, setIsSaving] = useState(false);
-  const [rowError, setRowError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
-
-  const handleSave = async () => {
-    setRowError(null);
-    setSaved(false);
-    setIsSaving(true);
-
-    const result = await saveWrittenAssignment(assignment.applicationId, [
-      grader1,
-      grader2,
-      grader3,
-    ]);
-
-    if (result.success) {
-      setSaved(true);
-      onSaved();
-    } else {
-      setRowError(result.error);
-    }
-
-    setIsSaving(false);
-  };
-
-  const allSelected = grader1 && grader2 && grader3;
-  const allDifferent =
-    new Set([grader1, grader2, grader3]).size === 3;
-  const canSave = allSelected && allDifferent;
-
-  return (
-    <tr className="hover:bg-gray-50">
-      <td className="px-4 py-3 font-medium text-gray-900">
-        {assignment.anonymousId}
-      </td>
-      <td className="px-4 py-3">
-        <GraderSelect
-          value={grader1}
-          onChange={setGrader1}
-          graders={graders}
-          excludeIds={[grader2, grader3]}
-        />
-      </td>
-      <td className="px-4 py-3">
-        <GraderSelect
-          value={grader2}
-          onChange={setGrader2}
-          graders={graders}
-          excludeIds={[grader1, grader3]}
-        />
-      </td>
-      <td className="px-4 py-3">
-        <GraderSelect
-          value={grader3}
-          onChange={setGrader3}
-          graders={graders}
-          excludeIds={[grader1, grader2]}
-        />
-      </td>
-      <td className="px-4 py-3">
-        {assignment.graders.length > 0 ? (
-          <span
-            className={`text-xs font-medium ${
-              assignment.gradedCount === 15
-                ? "text-green-600"
-                : "text-gray-500"
-            }`}
-          >
-            {assignment.gradedCount}/15
-          </span>
-        ) : (
-          <span className="text-xs text-gray-400">&mdash;</span>
-        )}
-      </td>
-      <td className="px-4 py-3 text-right">
-        <div className="flex items-center justify-end gap-2">
-          {rowError && (
-            <span className="text-xs text-red-600">{rowError}</span>
-          )}
-          {saved && <span className="text-xs text-green-600">Saved</span>}
-          <button
-            onClick={handleSave}
-            disabled={!canSave || isSaving}
-            className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isSaving ? "..." : "Save"}
-          </button>
-        </div>
-      </td>
-    </tr>
-  );
-};
 
 const GraderSelect = ({
   value,

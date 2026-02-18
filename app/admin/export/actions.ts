@@ -52,7 +52,7 @@ async function buildExportRows(
     assignmentIds.length > 0
       ? await supabaseAdmin
           .from("interview_grades")
-          .select("assignment_id, score")
+          .select("assignment_id, sub_section, score")
           .in("assignment_id", assignmentIds)
           .not("score", "is", null)
       : { data: [] };
@@ -99,34 +99,29 @@ async function buildExportRows(
           ) / 100
         : null;
 
-    // Interview per-section averages
-    const sectionScores: Map<number, number[]> = new Map();
+    // Interview per round+sub-section averages (4 columns)
+    // Key: "round-subSection" e.g. "1-1", "1-2", "2-1", "2-2"
+    const subSectionScores = new Map<string, number[]>();
     for (const ig of allInterviewGrades ?? []) {
       const info = assignmentMap.get(ig.assignment_id);
       if (!info || info.appId !== app.id) continue;
-      const list = sectionScores.get(info.section) ?? [];
+      const key = `${info.section}-${ig.sub_section}`;
+      const list = subSectionScores.get(key) ?? [];
       list.push(ig.score as number);
-      sectionScores.set(info.section, list);
+      subSectionScores.set(key, list);
     }
 
-    const s1Scores = sectionScores.get(1) ?? [];
-    const s2Scores = sectionScores.get(2) ?? [];
-
-    const interviewS1Avg =
-      s1Scores.length > 0
-        ? Math.round((s1Scores.reduce((s, v) => s + v, 0) / s1Scores.length) * 100) / 100
+    const avgOf = (scores: number[]): number | null =>
+      scores.length > 0
+        ? Math.round((scores.reduce((s, v) => s + v, 0) / scores.length) * 100) / 100
         : null;
 
-    const interviewS2Avg =
-      s2Scores.length > 0
-        ? Math.round((s2Scores.reduce((s, v) => s + v, 0) / s2Scores.length) * 100) / 100
-        : null;
+    const r1s1 = subSectionScores.get("1-1") ?? [];
+    const r1s2 = subSectionScores.get("1-2") ?? [];
+    const r2s1 = subSectionScores.get("2-1") ?? [];
+    const r2s2 = subSectionScores.get("2-2") ?? [];
 
-    const allIntScores = [...s1Scores, ...s2Scores];
-    const interviewAvg =
-      allIntScores.length > 0
-        ? Math.round((allIntScores.reduce((s, v) => s + v, 0) / allIntScores.length) * 100) / 100
-        : null;
+    const allIntScores = [...r1s1, ...r1s2, ...r2s1, ...r2s2];
 
     return {
       anonymousId: app.anonymous_id,
@@ -146,9 +141,11 @@ async function buildExportRows(
       writtenQ4Avg: writtenQAvgs[3],
       writtenQ5Avg: writtenQAvgs[4],
       writtenAvg,
-      interviewS1Avg,
-      interviewS2Avg,
-      interviewAvg,
+      interviewR1Sub1Avg: avgOf(r1s1),
+      interviewR1Sub2Avg: avgOf(r1s2),
+      interviewR2Sub1Avg: avgOf(r2s1),
+      interviewR2Sub2Avg: avgOf(r2s2),
+      interviewAvg: avgOf(allIntScores),
       totalScore: app.total_score,
       status: app.status,
       decision: decisionMap.get(app.id) ?? null,
@@ -178,8 +175,10 @@ function rowsToCSV(rows: ExportApplicantRow[]): string {
     "Written Q4 Avg",
     "Written Q5 Avg",
     "Written Avg",
-    "Interview S1 Avg",
-    "Interview S2 Avg",
+    "Interview R1 Sub1 Avg",
+    "Interview R1 Sub2 Avg",
+    "Interview R2 Sub1 Avg",
+    "Interview R2 Sub2 Avg",
     "Interview Avg",
     "Total Score",
     "Status",
@@ -213,8 +212,10 @@ function rowsToCSV(rows: ExportApplicantRow[]): string {
       row.writtenQ4Avg?.toFixed(2) ?? "",
       row.writtenQ5Avg?.toFixed(2) ?? "",
       row.writtenAvg?.toFixed(2) ?? "",
-      row.interviewS1Avg?.toFixed(2) ?? "",
-      row.interviewS2Avg?.toFixed(2) ?? "",
+      row.interviewR1Sub1Avg?.toFixed(2) ?? "",
+      row.interviewR1Sub2Avg?.toFixed(2) ?? "",
+      row.interviewR2Sub1Avg?.toFixed(2) ?? "",
+      row.interviewR2Sub2Avg?.toFixed(2) ?? "",
       row.interviewAvg?.toFixed(2) ?? "",
       row.totalScore?.toFixed(2) ?? "",
       row.status,

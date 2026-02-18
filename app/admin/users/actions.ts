@@ -197,19 +197,26 @@ export async function getUserDetail(
       interviewApps?.map((a) => [a.id, a]) ?? []
     );
 
-    // Fetch interview grades
+    // Fetch interview grades (with sub_section)
     const assignmentIds = assignments?.map((a) => a.id) ?? [];
     const { data: interviewGrades } =
       assignmentIds.length > 0
         ? await supabaseAdmin
             .from("interview_grades")
-            .select("assignment_id, score")
+            .select("assignment_id, sub_section, score")
             .in("assignment_id", assignmentIds)
         : { data: [] };
 
-    const gradeByAssignment = new Map(
-      interviewGrades?.map((g) => [g.assignment_id, g.score]) ?? []
-    );
+    // Group grades by assignment_id
+    const gradesByAssignment = new Map<
+      string,
+      { sub_section: number; score: number | null }[]
+    >();
+    for (const g of interviewGrades ?? []) {
+      const list = gradesByAssignment.get(g.assignment_id) ?? [];
+      list.push({ sub_section: g.sub_section, score: g.score });
+      gradesByAssignment.set(g.assignment_id, list);
+    }
 
     // Fetch interview notes
     const { data: interviewNotes } =
@@ -249,13 +256,19 @@ export async function getUserDetail(
           notes: n.notes ?? "",
         }));
 
+      const grades = gradesByAssignment.get(a.id) ?? [];
+      const scores = grades.map((g) => ({
+        subSection: g.sub_section as 1 | 2,
+        score: g.score,
+      }));
+
       return {
         applicationId: a.application_id,
         anonymousId: app?.anonymous_id ?? "Unknown",
         firstName: app?.first_name ?? "",
         lastName: app?.last_name ?? "",
         section: a.section,
-        score: gradeByAssignment.get(a.id) ?? null,
+        scores,
         notes,
       };
     });

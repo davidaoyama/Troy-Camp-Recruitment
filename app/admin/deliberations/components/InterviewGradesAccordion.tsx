@@ -53,7 +53,7 @@ export const InterviewGradesAccordion = ({
                 className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 transition-colors text-left"
               >
                 <span className="text-sm font-medium text-gray-900">
-                  Section {s.section}
+                  Round {s.section}
                 </span>
                 <div className="flex items-center gap-3 shrink-0 ml-3">
                   <span className="text-sm text-gray-500">
@@ -82,13 +82,22 @@ export const InterviewGradesAccordion = ({
                       key={gi}
                       className={`${gi > 0 ? "border-t border-gray-200 pt-3" : ""}`}
                     >
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <span className="text-sm font-semibold text-gray-900">
                           {grader.graderName}
                         </span>
-                        <span className="text-sm font-bold text-blue-600">
-                          {grader.score > 0 ? grader.score : "N/A"}
-                        </span>
+                        {grader.subScores.length > 0 ? (
+                          grader.subScores.map((ss) => (
+                            <span
+                              key={ss.subSection}
+                              className="text-xs font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700"
+                            >
+                              Sub {ss.subSection}: {ss.score}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-sm text-gray-400">N/A</span>
+                        )}
                       </div>
 
                       {grader.notes.length > 0 && (

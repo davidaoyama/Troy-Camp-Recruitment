@@ -151,19 +151,27 @@ export async function getApplicantDetail(
       .eq("application_id", applicationId)
       .order("section", { ascending: true });
 
-    // Get interview grades
+    // Get interview grades (now with sub_section)
     const assignmentIds = assignments?.map((a) => a.id) ?? [];
     const { data: interviewGrades } =
       assignmentIds.length > 0
         ? await supabaseAdmin
             .from("interview_grades")
-            .select("assignment_id, score")
+            .select("assignment_id, sub_section, score")
             .in("assignment_id", assignmentIds)
         : { data: [] };
 
-    const gradeByAssignment = new Map(
-      interviewGrades?.map((g) => [g.assignment_id, g.score]) ?? []
-    );
+    // Group grades by assignment_id → array of { sub_section, score }
+    const gradesByAssignment = new Map<
+      string,
+      { sub_section: number; score: number }[]
+    >();
+    for (const g of interviewGrades ?? []) {
+      if (g.score == null) continue;
+      const list = gradesByAssignment.get(g.assignment_id) ?? [];
+      list.push({ sub_section: g.sub_section, score: g.score });
+      gradesByAssignment.set(g.assignment_id, list);
+    }
 
     // Get interview notes
     const { data: interviewNotes } =
@@ -220,8 +228,14 @@ export async function getApplicantDetail(
     for (const [section, sectionAssignments] of sectionMap) {
       const sectionScores: number[] = [];
       const graderDetails = (sectionAssignments ?? []).map((a) => {
-        const score = gradeByAssignment.get(a.id);
-        if (score != null) sectionScores.push(score);
+        const grades = gradesByAssignment.get(a.id) ?? [];
+        const subScores = grades.map((g) => ({
+          subSection: g.sub_section as 1 | 2,
+          score: g.score,
+        }));
+        for (const g of grades) {
+          sectionScores.push(g.score);
+        }
 
         // Get notes for this assignment
         const assignmentNotes = (interviewNotes ?? [])
@@ -236,7 +250,7 @@ export async function getApplicantDetail(
 
         return {
           graderName: graderNameMap.get(a.grader_id) ?? "Unknown",
-          score: score ?? 0,
+          subScores,
           notes: assignmentNotes,
         };
       });
